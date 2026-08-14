@@ -1,6 +1,8 @@
+import 'package:dio/adapter.dart';
 import 'package:dio/dio.dart';
 import 'package:manhuagui_flutter/app_setting.dart';
 import 'package:manhuagui_flutter/config.dart';
+import 'package:manhuagui_flutter/service/dio/retry_interceptor.dart';
 
 class DioManager {
   DioManager._();
@@ -19,37 +21,39 @@ class DioManager {
   Dio? _noTimeoutDio;
 
   Dio get dio {
-    if (_dio == null) {
-      _dio = Dio();
-      _dio!.options.connectTimeout = CONNECT_TIMEOUT;
-      _dio!.options.sendTimeout = SEND_TIMEOUT;
-      _dio!.options.receiveTimeout = RECEIVE_TIMEOUT;
-      _dio!.interceptors.add(LogInterceptor());
-    }
-    if (_longDio == null) {
-      _longDio = Dio();
-      _longDio!.options.connectTimeout = CONNECT_LTIMEOUT;
-      _longDio!.options.sendTimeout = SEND_LTIMEOUT;
-      _longDio!.options.receiveTimeout = RECEIVE_LTIMEOUT;
-      _longDio!.interceptors.add(LogInterceptor());
-    }
-    if (_longLongDio == null) {
-      _longLongDio = Dio();
-      _longLongDio!.options.connectTimeout = CONNECT_LLTIMEOUT;
-      _longLongDio!.options.sendTimeout = SEND_LLTIMEOUT;
-      _longLongDio!.options.receiveTimeout = RECEIVE_LLTIMEOUT;
-      _longLongDio!.interceptors.add(LogInterceptor());
-    }
-    if (_noTimeoutDio == null) {
-      _noTimeoutDio = Dio();
-      _noTimeoutDio!.interceptors.add(LogInterceptor());
-    }
+    _dio ??= _createDio(connectTimeout: CONNECT_TIMEOUT, sendTimeout: SEND_TIMEOUT, receiveTimeout: RECEIVE_TIMEOUT);
+    _longDio ??= _createDio(connectTimeout: CONNECT_LTIMEOUT, sendTimeout: SEND_LTIMEOUT, receiveTimeout: RECEIVE_LTIMEOUT);
+    _longLongDio ??= _createDio(connectTimeout: CONNECT_LLTIMEOUT, sendTimeout: SEND_LLTIMEOUT, receiveTimeout: RECEIVE_LLTIMEOUT);
+    _noTimeoutDio ??= _createDio(connectTimeout: 0, sendTimeout: 0, receiveTimeout: 0);
     return AppSetting.instance.other.timeoutBehavior.determineValue(
       normal: _dio!,
       long: _longDio!,
       longLong: _longLongDio!,
       disable: _noTimeoutDio!,
     )!;
+  }
+
+  Dio _createDio({required int connectTimeout, required int sendTimeout, required int receiveTimeout}) {
+    var dio = Dio()
+      ..options.connectTimeout = connectTimeout
+      ..options.sendTimeout = sendTimeout
+      ..options.receiveTimeout = receiveTimeout;
+    _setupHttpClient(dio);
+    dio.interceptors.add(LogInterceptor());
+    dio.interceptors.add(RetryInterceptor(dio));
+    return dio;
+  }
+
+  /// Hardens the underlying [HttpClient] against transient connection
+  /// failures: keeps idle connections alive longer (fewer TLS handshakes,
+  /// which is where the "Connection terminated during handshake" errors
+  /// occur), so requests mostly reuse warm connections instead of re-negotiating.
+  void _setupHttpClient(Dio dio) {
+    dio.httpClientAdapter = DefaultHttpClientAdapter()
+      ..onHttpClientCreate = (client) {
+        client.idleTimeout = const Duration(seconds: 15);
+        return client;
+      };
   }
 }
 
