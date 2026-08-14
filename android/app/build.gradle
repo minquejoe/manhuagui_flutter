@@ -36,7 +36,8 @@ android {
     }
 
     defaultConfig {
-        applicationId 'com.aoihosizora.manhuagui'
+        applicationId 'com.aoihosizora.manhuagui_alt'
+        // applicationId 'com.aoihosizora.manhuagui'
         // applicationId 'com.aoihosizora.manhuagui_test'
         // applicationId 'com.aoihosizora.manhuagui_beta'
         versionCode 7
@@ -53,9 +54,19 @@ android {
             storeFile file(keystoreProperties['storeFile'])
             storePassword keystoreProperties['storePassword']
         }
+        debug {
+            keyAlias keystoreProperties['keyAlias']
+            keyPassword keystoreProperties['keyPassword']
+            storeFile file(keystoreProperties['storeFile'])
+            storePassword keystoreProperties['storePassword']
+        }
     }
 
     buildTypes {
+        debug {
+            signingConfig signingConfigs.debug
+        }
+
         release {
             signingConfig signingConfigs.release
 
