@@ -48,7 +48,7 @@ class _RecentSubPageState extends State<RecentSubPage> with AutomaticKeepAliveCl
   late final _flagStorage = MangaCornerFlagStorage(stateSetter: () => mountedSetState(() {}));
 
   Future<PagedList<TinyManga>> _getData({required int page}) async {
-    final client = RestClient(DioManager.instance.dio);
+    final client = createRestClient(DioManager.instance.dio);
     var result = await client.getRecentUpdatedMangas(page: page).onError((e, s) {
       return Future.error(wrapError(e, s).text);
     });

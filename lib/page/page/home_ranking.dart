@@ -55,7 +55,7 @@ class _RankingSubPageState extends State<RankingSubPage> with AutomaticKeepAlive
     _genreLoading = true;
     if (mounted) setState(() {});
 
-    final client = RestClient(DioManager.instance.dio);
+    final client = createRestClient(DioManager.instance.dio);
     try {
       if (globalCategoryList == null) {
         var result = await client.getCategories();
@@ -86,7 +86,7 @@ class _RankingSubPageState extends State<RankingSubPage> with AutomaticKeepAlive
   var _lastDuration = allRankingDurations[0];
 
   Future<List<MangaRanking>> _getData() async {
-    final client = RestClient(DioManager.instance.dio);
+    final client = createRestClient(DioManager.instance.dio);
     var f = _currDuration.name == 'day'
         ? client.getDayRanking
         : _currDuration.name == 'week'

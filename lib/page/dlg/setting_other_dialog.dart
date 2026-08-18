@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_ahlib/flutter_ahlib.dart';
+import 'package:fluttertoast/fluttertoast.dart';
 import 'package:manhuagui_flutter/app_setting.dart';
 import 'package:manhuagui_flutter/config.dart';
 import 'package:manhuagui_flutter/page/view/setting_dialog.dart';
@@ -43,6 +44,7 @@ class _OtherSettingSubPageState extends State<OtherSettingSubPage> {
   late var _enableLogger = widget.setting.enableLogger;
   late var _showDebugErrorMsg = widget.setting.showDebugErrorMsg;
   late var _useNativeShareSheet = widget.setting.useNativeShareSheet;
+  late var _apiBaseUrl = widget.setting.apiBaseUrl;
 
   OtherSetting get _newestSetting => OtherSetting(
         timeoutBehavior: _timeoutBehavior,
@@ -51,6 +53,7 @@ class _OtherSettingSubPageState extends State<OtherSettingSubPage> {
         enableLogger: _enableLogger,
         showDebugErrorMsg: _showDebugErrorMsg,
         useNativeShareSheet: _useNativeShareSheet,
+        apiBaseUrl: _apiBaseUrl,
       );
 
   void _setToDefault() {
@@ -61,8 +64,64 @@ class _OtherSettingSubPageState extends State<OtherSettingSubPage> {
     _enableLogger = setting.enableLogger;
     _showDebugErrorMsg = setting.showDebugErrorMsg;
     _useNativeShareSheet = setting.useNativeShareSheet;
+    _apiBaseUrl = setting.apiBaseUrl;
     widget.onSettingChanged.call(_newestSetting);
     if (mounted) setState(() {});
+  }
+
+  Future<void> _editApiBaseUrl() async {
+    final controller = TextEditingController(text: _apiBaseUrl.isEmpty ? AppSetting.instance.other.effectiveApiBaseUrl : _apiBaseUrl);
+    var ok = await showDialog<bool>(
+      context: context,
+      builder: (c) => AlertDialog(
+        title: const Text('自定义服务器地址'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Text('填写你自建的后端 API 地址（形如 https://example.com/v1/）。\n点击"恢复默认"可回到原开发者服务器。'),
+            const SizedBox(height: 10),
+            TextField(
+              controller: controller,
+              decoration: const InputDecoration(
+                hintText: 'https://example.com/v1/',
+                border: OutlineInputBorder(),
+              ),
+              keyboardType: TextInputType.url,
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            child: const Text('恢复默认'),
+            onPressed: () {
+              controller.text = '';
+              Navigator.of(c).pop(true);
+            },
+          ),
+          TextButton(
+            child: const Text('取消'),
+            onPressed: () => Navigator.of(c).pop(false),
+          ),
+          TextButton(
+            child: const Text('确定'),
+            onPressed: () => Navigator.of(c).pop(true),
+          ),
+        ],
+      ),
+    );
+    if (ok == true) {
+      var url = controller.text.trim();
+      if (url.isNotEmpty) {
+        var uri = Uri.tryParse(url);
+        if (uri == null || !(uri.isScheme('http') || uri.isScheme('https'))) {
+          Fluttertoast.showToast(msg: '服务器地址格式不正确，应以 http:// 或 https:// 开头');
+          return;
+        }
+      }
+      _apiBaseUrl = url;
+      widget.onSettingChanged.call(_newestSetting);
+      if (mounted) setState(() {});
+    }
   }
 
   @override
@@ -158,6 +217,37 @@ class _OtherSettingSubPageState extends State<OtherSettingSubPage> {
             widget.onSettingChanged.call(_newestSetting);
             if (mounted) setState(() {});
           },
+        ),
+        InkWell(
+          onTap: _editApiBaseUrl,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 8),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Flexible(
+                  child: Text(
+                    '自定义服务器地址',
+                    style: Theme.of(context).textTheme.bodyText1,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Flexible(
+                  child: Text(
+                    _apiBaseUrl.isEmpty ? '默认（原开发者服务器）' : _apiBaseUrl,
+                    style: Theme.of(context).textTheme.bodyText2,
+                    textAlign: TextAlign.end,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+                const SizedBox(width: 4),
+                const Icon(Icons.edit, size: 16),
+              ],
+            ),
+          ),
         ),
       ],
     );

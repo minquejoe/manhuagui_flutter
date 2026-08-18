@@ -60,7 +60,7 @@ class _AuthorSubPageState extends State<AuthorSubPage> with AutomaticKeepAliveCl
     _genreLoading = true;
     if (mounted) setState(() {});
 
-    final client = RestClient(DioManager.instance.dio);
+    final client = createRestClient(DioManager.instance.dio);
     try {
       if (globalCategoryList == null) {
         var result = await client.getCategories();
@@ -96,7 +96,7 @@ class _AuthorSubPageState extends State<AuthorSubPage> with AutomaticKeepAliveCl
   var _lastZone = allZones[0];
 
   Future<PagedList<SmallAuthor>> _getData({required int page}) async {
-    final client = RestClient(DioManager.instance.dio);
+    final client = createRestClient(DioManager.instance.dio);
     var f = client.getAllAuthors(
       genre: _currGenre.name,
       zone: _currZone.name,

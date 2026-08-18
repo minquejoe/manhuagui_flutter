@@ -100,7 +100,7 @@ class _AuthorPageState extends State<AuthorPage> {
     _favoriteAuthor = await FavoriteDao.getAuthor(username: AuthManager.instance.username, aid: widget.id);
 
     // 2. 获取作者信息
-    final client = RestClient(DioManager.instance.dio);
+    final client = createRestClient(DioManager.instance.dio);
     try {
       var result = await client.getAuthor(aid: widget.id);
       if (result.data.name == '') {
@@ -145,7 +145,7 @@ class _AuthorPageState extends State<AuthorPage> {
   var _lastOrder = AppSetting.instance.ui.defaultMangaOrder;
 
   Future<PagedList<SmallManga>> _getMangas({required int page}) async {
-    final client = RestClient(DioManager.instance.dio);
+    final client = createRestClient(DioManager.instance.dio);
     var result = await client.getAuthorMangas(aid: widget.id, page: page, order: _currOrder).onError((e, s) {
       return Future.error(wrapError(e, s).text);
     });

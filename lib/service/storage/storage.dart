@@ -5,6 +5,7 @@ import 'package:external_path/external_path.dart';
 import 'package:flutter_cache_manager/flutter_cache_manager.dart';
 import 'package:intl/intl.dart';
 import 'package:manhuagui_flutter/config.dart';
+import 'package:manhuagui_flutter/service/storage/image_cache_manager.dart';
 import 'package:path/path.dart' as path_;
 import 'package:path_provider/path_provider.dart';
 
@@ -113,7 +114,7 @@ Future<int> getDefaultCacheManagerDirectoryBytes() async {
 Future<String?> getCachedOrDownloadedFilepath({String? url, File? file}) async {
   if (file == null || !(await file.exists())) {
     if (url != null && url.isNotEmpty) {
-      var info = await DefaultCacheManager().getFileFromCache(url);
+      var info = await AppImageCacheManager().getFileFromCache(url);
       file = info?.file;
     }
   }

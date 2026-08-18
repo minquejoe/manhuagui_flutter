@@ -123,7 +123,7 @@ class _RecommendSubPageState extends State<RecommendSubPage> with AutomaticKeepA
     }
 
     // 同步获取漫画分组数据
-    final client = RestClient(DioManager.instance.dio);
+    final client = createRestClient(DioManager.instance.dio);
     try {
       var result = await client.getHomepageMangas();
       _data = null;
@@ -153,7 +153,7 @@ class _RecommendSubPageState extends State<RecommendSubPage> with AutomaticKeepA
   var _shelvesError = '';
 
   Future<void> _loadCollections(List<MangaCollectionType> types, {bool onlyIfEmpty = false, bool needDelay = false}) async {
-    final client = RestClient(DioManager.instance.dio);
+    final client = createRestClient(DioManager.instance.dio);
 
     if (types.contains(MangaCollectionType.rankings)) {
       // pass => #=50
@@ -252,7 +252,7 @@ class _RecommendSubPageState extends State<RecommendSubPage> with AutomaticKeepA
   var _shaonvRankingsError = '';
 
   Future<void> _loadRankings(List<MangaAudRankingType> types, {bool onlyIfEmpty = false, bool needDelay = false}) async {
-    final client = RestClient(DioManager.instance.dio);
+    final client = createRestClient(DioManager.instance.dio);
 
     if (types.contains(MangaAudRankingType.all)) {
       // pass => #=50

@@ -21,7 +21,7 @@ class _MangaRandomPageState extends State<MangaRandomPage> {
   }
 
   Future<void> _loadData() async {
-    final client = RestClient(DioManager.instance.dio);
+    final client = createRestClient(DioManager.instance.dio);
     try {
       var random = await client.getRandomManga();
       var mid = random.data.mid;

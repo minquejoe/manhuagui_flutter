@@ -76,7 +76,7 @@ class _SearchPageState extends State<SearchPage> {
   var _lastOrder = AppSetting.instance.ui.defaultMangaOrder;
 
   Future<PagedList<SmallManga>> _getData({required int page}) async {
-    final client = RestClient(DioManager.instance.dio);
+    final client = createRestClient(DioManager.instance.dio);
     var result = await client.searchMangas(keyword: _q!, page: page, order: _currOrder).onError((e, s) {
       return Future.error(wrapError(e, s).text);
     });

@@ -2,12 +2,13 @@ import 'dart:convert';
 import 'dart:io' show Directory, File, FileSystemEntity, FileSystemEntityType;
 
 import 'package:flutter_ahlib/flutter_ahlib.dart';
-import 'package:flutter_cache_manager/flutter_cache_manager.dart';
 import 'package:manhuagui_flutter/app_setting.dart';
 import 'package:manhuagui_flutter/config.dart';
 import 'package:manhuagui_flutter/model/entity.dart';
 import 'package:manhuagui_flutter/service/db/download.dart';
+import 'package:manhuagui_flutter/service/image_url.dart';
 import 'package:manhuagui_flutter/service/native/android.dart';
+import 'package:manhuagui_flutter/service/storage/image_cache_manager.dart';
 import 'package:manhuagui_flutter/service/storage/storage.dart';
 
 // ====
@@ -16,7 +17,8 @@ import 'package:manhuagui_flutter/service/storage/storage.dart';
 
 Future<String> _getDownloadImageFilePath(String url) async {
   var basename = getTimestampTokenForFilename();
-  var extension = PathUtils.getExtension(url.split('?')[0]); // include "."
+  // 代理地址本身没有扩展名，需用原始图床地址推导
+  var extension = PathUtils.getExtension(originalImageUrl(url).split('?')[0]); // include "."
   var filename = '$basename$extension';
   var directoryPath = await lowerThanAndroidR()
       ? await getPublicStorageDirectoryPath() // /storage/emulated/0/Manhuagui/manhuagui_image/IMG_20220917_131013_206.jpg
@@ -39,7 +41,8 @@ Future<String> _getDownloadMangaDirectoryPath([int? mangaId, int? chapterId]) as
 
 Future<String> _getDownloadedChapterPageFilePath({required int mangaId, required int chapterId, required int pageIndex, required String? url}) async {
   var basename = (pageIndex + 1).toString().padLeft(4, '0');
-  var extension = PathUtils.getExtension((url ?? 'xxx.webp').split('?')[0]); // include "."
+  // 代理地址本身没有扩展名，需用原始图床地址推导
+  var extension = PathUtils.getExtension(originalImageUrl(url ?? 'xxx.webp').split('?')[0]); // include "."
   var filename = '$basename$extension';
   return PathUtils.joinPath([await _getDownloadMangaDirectoryPath(mangaId, chapterId), filename]);
 }
@@ -85,15 +88,15 @@ Future<File?> downloadImageToGallery(String url, {File? precheck}) async {
       // copy given file directly
       f = await precheck.copy(filepath);
     } else {
-      // download from network
+      // download from network (经自建后端代理；未配置时原样直连)
       f = await downloadFile(
-        url: url,
+        url: proxyImageUrl(url, apiBase: AppSetting.instance.other.effectiveApiBaseUrl),
         filepath: filepath,
         headers: {
           'User-Agent': USER_AGENT,
           'Referer': REFERER,
         },
-        cacheManager: DefaultCacheManager(),
+        cacheManager: AppImageCacheManager(),
         option: DownloadOption(
           behavior: DownloadBehavior.preferUsingCache,
           conflictHandler: (_) async => DownloadConflictBehavior.addSuffix,
@@ -120,18 +123,20 @@ Future<File?> downloadImageToGallery(String url, {File? precheck}) async {
 
 Future<bool> downloadChapterPage({required int mangaId, required int chapterId, required int pageIndex, required String url}) async {
   try {
+    // 文件路径与扩展名从原始图床地址推导（代理地址没有扩展名）
     var filepath = await _getDownloadedChapterPageFilePath(mangaId: mangaId, chapterId: chapterId, pageIndex: pageIndex, url: url);
     if (await File(filepath).exists()) {
       return true;
     }
     await downloadFile(
-      url: url,
+      // 经自建后端代理下载（未配置自建服务器时原样直连）
+      url: proxyImageUrl(url, apiBase: AppSetting.instance.other.effectiveApiBaseUrl),
       filepath: filepath,
       headers: {
         'User-Agent': USER_AGENT,
         'Referer': REFERER,
       },
-      cacheManager: DefaultCacheManager(),
+      cacheManager: AppImageCacheManager(),
       option: DownloadOption(
         behavior: DownloadBehavior.preferUsingCache,
         conflictHandler: (_) async => DownloadConflictBehavior.overwrite,

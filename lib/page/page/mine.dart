@@ -109,7 +109,7 @@ class _MineSubPageState extends State<MineSubPage> with AutomaticKeepAliveClient
       return;
     }
 
-    final client = RestClient(DioManager.instance.dio);
+    final client = createRestClient(DioManager.instance.dio);
     try {
       var result = await client.getUserInfo(token: AuthManager.instance.token);
       _data = null;
@@ -165,7 +165,7 @@ class _MineSubPageState extends State<MineSubPage> with AutomaticKeepAliveClient
     _checkining = true;
     if (mounted) setState(() {});
 
-    final client = RestClient(DioManager.instance.dio);
+    final client = createRestClient(DioManager.instance.dio);
     try {
       var username = AuthManager.instance.username;
       var result = await client.login(username: username, password: password);

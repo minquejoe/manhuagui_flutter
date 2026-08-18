@@ -1,4 +1,5 @@
 import 'package:dio/dio.dart';
+import 'package:manhuagui_flutter/app_setting.dart';
 import 'package:manhuagui_flutter/config.dart';
 import 'package:manhuagui_flutter/model/author.dart';
 import 'package:manhuagui_flutter/model/category.dart';
@@ -13,6 +14,10 @@ import 'package:retrofit/http.dart';
 import 'package:retrofit/dio.dart';
 
 part 'retrofit.g.dart';
+
+/// Creates a [RestClient] bound to the user-configured API base URL
+/// (自定义服务器地址, falls back to the default developer proxy server).
+RestClient createRestClient(Dio dio) => RestClient(dio, baseUrl: AppSetting.instance.other.effectiveApiBaseUrl);
 
 @RestApi(baseUrl: BASE_API_URL)
 abstract class RestClient {

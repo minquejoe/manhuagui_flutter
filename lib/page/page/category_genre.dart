@@ -68,7 +68,7 @@ class _GenreSubPageState extends State<GenreSubPage> with AutomaticKeepAliveClie
     _genreLoading = true;
     if (mounted) setState(() {});
 
-    final client = RestClient(DioManager.instance.dio);
+    final client = createRestClient(DioManager.instance.dio);
     try {
       if (globalCategoryList == null) {
         var result = await client.getCategories();
@@ -129,7 +129,7 @@ class _GenreSubPageState extends State<GenreSubPage> with AutomaticKeepAliveClie
   var _lastStatus = allStatuses[0];
 
   Future<PagedList<TinyManga>> _getData({required int page}) async {
-    final client = RestClient(DioManager.instance.dio);
+    final client = createRestClient(DioManager.instance.dio);
     var f = client.getGenreMangas(
       genre: _currGenre.name,
       zone: _currZone.name,

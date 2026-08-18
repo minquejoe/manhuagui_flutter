@@ -142,7 +142,7 @@ class _MangaPageState extends State<MangaPage> {
     _getComments();
 
     // 2. 异步获取漫画书架情况
-    final client = RestClient(DioManager.instance.dio);
+    final client = createRestClient(DioManager.instance.dio);
     if (AuthManager.instance.logined) {
       Future.microtask(() async {
         try {
@@ -296,7 +296,7 @@ class _MangaPageState extends State<MangaPage> {
     _commentTotal = 0;
     if (mounted) setState(() {});
 
-    final client = RestClient(DioManager.instance.dio);
+    final client = createRestClient(DioManager.instance.dio);
     try {
       var result = await client.getMangaComments(mid: widget.id, page: 1);
       _comments.addAll(result.data.data.sublist(0, 20.clamp(0, result.data.data.length))); // # = 30 -> 20
@@ -1120,7 +1120,7 @@ class _MangaPageState extends State<MangaPage> {
                                   Fluttertoast.showToast(msg: '用户未登录');
                                   return;
                                 }
-                                final client = RestClient(DioManager.instance.dio);
+                                final client = createRestClient(DioManager.instance.dio);
                                 try {
                                   await client.voteManga(token: AuthManager.instance.token, mid: widget.id, score: score);
                                   Fluttertoast.showToast(msg: '投票成功');

@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_ahlib/flutter_ahlib.dart';
-import 'package:flutter_cache_manager/flutter_cache_manager.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 import 'package:manhuagui_flutter/page/view/common_widgets.dart';
 import 'package:manhuagui_flutter/page/view/setting_dialog.dart';
 import 'package:manhuagui_flutter/service/storage/download.dart';
 import 'package:manhuagui_flutter/service/storage/export_import_data.dart';
+import 'package:manhuagui_flutter/service/storage/image_cache_manager.dart';
 import 'package:manhuagui_flutter/service/storage/storage.dart';
 
 /// 设置页-导出数据 [showExportDataDialog], [ExportDataSubPage]
@@ -286,7 +286,7 @@ Future<void> showClearCacheDialog({required BuildContext context}) async {
   }
 
   await _showFakeProgressDialog(context, '清除图像缓存...');
-  await DefaultCacheManager().store.emptyCache();
+  await AppImageCacheManager().store.emptyCache();
   Navigator.of(context).pop(); // dismiss progress dialog
   Fluttertoast.showToast(msg: '已清除所有图像缓存');
 }

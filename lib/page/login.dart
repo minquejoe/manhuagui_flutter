@@ -94,7 +94,7 @@ class _LoginPageState extends State<LoginPage> {
     var username = _usernameController.text.trim();
     var password = _passwordController.text.trim();
 
-    final client = RestClient(DioManager.instance.dio);
+    final client = createRestClient(DioManager.instance.dio);
     String token;
     try {
       var result = await client.login(username: username, password: password);

@@ -1,12 +1,15 @@
+import 'dart:async';
 import 'dart:io' show File;
 
+import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_ahlib/flutter_ahlib.dart';
-import 'package:flutter_cache_manager/flutter_cache_manager.dart';
 import 'package:manhuagui_flutter/app_setting.dart';
 import 'package:manhuagui_flutter/config.dart';
 import 'package:manhuagui_flutter/page/view/extended_gallery.dart';
 import 'package:manhuagui_flutter/page/view/image_load.dart';
+import 'package:manhuagui_flutter/service/dio/retry_interceptor.dart';
+import 'package:manhuagui_flutter/service/storage/image_cache_manager.dart';
 import 'package:photo_view/photo_view.dart';
 
 /// 使用 [HorizontalGalleryView] 和 [VerticalGalleryView] 构建的漫画画廊，在 [MangaViewerPage] 使用
@@ -57,10 +60,32 @@ class MangaGalleryView extends StatefulWidget {
   State<MangaGalleryView> createState() => MangaGalleryViewState();
 }
 
-class MangaGalleryViewState extends State<MangaGalleryView> {
-  final _cache = DefaultCacheManager();
+class MangaGalleryViewState extends State<MangaGalleryView> with WidgetsBindingObserver {
+  final _cache = AppImageCacheManager();
   final _horizontalGalleryKey = GlobalKey<HorizontalGalleryViewState>();
   final _verticalGalleryKey = GlobalKey<VerticalGalleryViewState>();
+
+  // auto retry failed pages (transient network errors only), with backoff
+  static const _kMaxAutoRetryCount = 3;
+  final _autoRetryCounts = <int, int>{};
+  final _autoRetryTimers = <int, Timer>{};
+  final _failedPages = <int>{}; // pages currently waiting for auto retry
+  StreamSubscription<ConnectivityResult>? _connectivitySubscription;
+  Timer? _connectivityPollTimer;
+  var _connectivityWatcherStarted = false;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance?.addObserver(this);
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      _reloadFailedPages(); // 解锁 / 回到前台时自动重载失败页
+    }
+  }
 
   // current page index, include extra pages, start from 0.
   late var _currentPageIndex = widget.initialImageIndex + 1;
@@ -134,6 +159,96 @@ class MangaGalleryViewState extends State<MangaGalleryView> {
         _verticalGalleryKey.currentState?.reload(imageIndex, alsoEvict: true);
       }
     }
+  }
+
+  /// Auto-retries a failed image after a backoff delay, so a CDN throttle
+  /// window or a signal loss (subway tunnels) is usually ridden out without
+  /// user interaction. Only transient connection failures and timeouts are
+  /// retried; other errors keep the manual long-press -> reload behavior.
+  void _scheduleAutoRetry(int imageIndex, Object? err) {
+    if (err == null) {
+      _autoRetryCounts.remove(imageIndex);
+      _failedPages.remove(imageIndex);
+      return;
+    }
+    if (!(isConnectionError(err) || err is TimeoutException)) {
+      return; // not a transient network failure, no auto retry
+    }
+    var count = (_autoRetryCounts[imageIndex] ?? 0) + 1;
+    if (count > _kMaxAutoRetryCount) {
+      _autoRetryCounts.remove(imageIndex);
+      _failedPages.remove(imageIndex);
+      return;
+    }
+    _autoRetryCounts[imageIndex] = count;
+    _failedPages.add(imageIndex);
+    _startConnectivityWatcher();
+    _autoRetryTimers[imageIndex]?.cancel();
+    // Backoff: 5s, 15s, 30s. Longer spacing than before so that longer
+    // outages (e.g. a whole subway tunnel) can be ridden out as well.
+    _autoRetryTimers[imageIndex] = Timer(Duration(seconds: 5 * count * (count + 1) ~/ 2), () {
+      if (mounted) {
+        reloadImage(imageIndex);
+      }
+    });
+  }
+
+  /// Watches for the network coming back (subway tunnels, airplane mode) so
+  /// that failed pages reload immediately instead of waiting for the backoff
+  /// timers to finish. Falls back to polling [Connectivity.checkConnectivity]
+  /// every 10s because some platforms do not emit change events on regain.
+  void _startConnectivityWatcher() {
+    if (!_connectivityWatcherStarted) {
+      _connectivityWatcherStarted = true;
+      try {
+        _connectivitySubscription = Connectivity().onConnectivityChanged.listen((result) {
+          if (result != ConnectivityResult.none) {
+            _reloadFailedPages();
+          }
+        }, onError: (Object _) {});
+      } catch (_) {
+        // plugin unavailable (e.g. in unit tests)
+      }
+    }
+    _connectivityPollTimer?.cancel();
+    _connectivityPollTimer = Timer.periodic(const Duration(seconds: 10), (_) async {
+      if (_failedPages.isEmpty) {
+        _connectivityPollTimer?.cancel();
+        _connectivityPollTimer = null;
+        return;
+      }
+      try {
+        var result = await Connectivity().checkConnectivity();
+        if (result != ConnectivityResult.none) {
+          _reloadFailedPages();
+        }
+      } catch (_) {
+        // ignore
+      }
+    });
+  }
+
+  void _reloadFailedPages() {
+    if (_failedPages.isEmpty) {
+      return;
+    }
+    final pages = _failedPages.toList();
+    _failedPages.clear();
+    for (final imageIndex in pages) {
+      _autoRetryTimers[imageIndex]?.cancel();
+      if (mounted) {
+        reloadImage(imageIndex);
+      }
+    }
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance?.removeObserver(this);
+    _connectivitySubscription?.cancel();
+    _connectivityPollTimer?.cancel();
+    _autoRetryTimers.values.forEach((timer) => timer.cancel());
+    super.dispose();
   }
 
   // for ImageErrorView
@@ -238,6 +353,7 @@ class MangaGalleryViewState extends State<MangaGalleryView> {
             networkTimeout: widget.networkTimeout,
             fileFuture: widget.imageFileFutures[imageIndex],
             fileMustExist: false, // <<<
+            onUrlLoaded: (err) => _scheduleAutoRetry(imageIndex, err),
           ),
           loadingBuilder: (_, ev) => GestureDetector(
             onTapDown: (d) => _onPointerDown(d.globalPosition),
@@ -315,6 +431,7 @@ class MangaGalleryViewState extends State<MangaGalleryView> {
           networkTimeout: widget.networkTimeout,
           fileFuture: widget.imageFileFutures[imageIndex],
           fileMustExist: false,
+          onUrlLoaded: (err) => _scheduleAutoRetry(imageIndex, err),
         ),
         loadingBuilder: (_, ev) => GestureDetector(
           onTapDown: (d) => _onPointerDown(d.globalPosition),

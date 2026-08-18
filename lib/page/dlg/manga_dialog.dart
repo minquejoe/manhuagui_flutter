@@ -749,7 +749,7 @@ class _DialogHelper {
     required bool fromShelfList,
     required bool fromMangaPage,
   }) async {
-    final client = RestClient(DioManager.instance.dio);
+    final client = createRestClient(DioManager.instance.dio);
 
     subscribing?.call(true);
     bool? added;

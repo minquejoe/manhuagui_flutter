@@ -36,6 +36,7 @@ class AppSettingPrefs {
   static const _keepScreenOnKey = BoolKey('AppSettingPrefs_keepScreenOn');
   static const _fullscreenKey = BoolKey('AppSettingPrefs_fullscreen');
   static const _preloadCountKey = IntKey('AppSettingPrefs_preloadCount');
+  static const _preloadWholeChapterKey = BoolKey('AppSettingPrefs_preloadWholeChapter');
   static const _pageNoPositionKey = IntKey('AppSettingPrefs_pageNoPosition');
   static const _hideAppBarWhenEnterKey = BoolKey('AppSettingPrefs_hideAppBarWhenEnter');
   static const _keepAppBarWhenReplaceKey = BoolKey('AppSettingPrefs_keepAppBarWhenReplace');
@@ -50,6 +51,7 @@ class AppSettingPrefs {
         _keepScreenOnKey,
         _fullscreenKey,
         _preloadCountKey,
+        _preloadWholeChapterKey,
         _pageNoPositionKey,
         _hideAppBarWhenEnterKey,
         _keepAppBarWhenReplaceKey,
@@ -68,6 +70,7 @@ class AppSettingPrefs {
       keepScreenOn: prefs.safeGet<bool>(_keepScreenOnKey) ?? def.keepScreenOn,
       fullscreen: prefs.safeGet<bool>(_fullscreenKey) ?? def.fullscreen,
       preloadCount: prefs.safeGet<int>(_preloadCountKey) ?? def.preloadCount,
+      preloadWholeChapter: prefs.safeGet<bool>(_preloadWholeChapterKey) ?? def.preloadWholeChapter,
       pageNoPosition: PageNoPositionExtension.fromInt(prefs.safeGet<int>(_pageNoPositionKey) ?? def.pageNoPosition.toInt()),
       hideAppBarWhenEnter: prefs.safeGet<bool>(_hideAppBarWhenEnterKey) ?? def.hideAppBarWhenEnter,
       keepAppBarWhenReplace: prefs.safeGet<bool>(_keepAppBarWhenReplaceKey) ?? def.keepAppBarWhenReplace,
@@ -86,6 +89,7 @@ class AppSettingPrefs {
     await prefs.safeSet<bool>(_keepScreenOnKey, setting.keepScreenOn);
     await prefs.safeSet<bool>(_fullscreenKey, setting.fullscreen);
     await prefs.safeSet<int>(_preloadCountKey, setting.preloadCount);
+    await prefs.safeSet<bool>(_preloadWholeChapterKey, setting.preloadWholeChapter);
     await prefs.safeSet<int>(_pageNoPositionKey, setting.pageNoPosition.toInt());
     await prefs.safeSet<bool>(_hideAppBarWhenEnterKey, setting.hideAppBarWhenEnter);
     await prefs.safeSet<bool>(_keepAppBarWhenReplaceKey, setting.keepAppBarWhenReplace);
@@ -221,6 +225,7 @@ class AppSettingPrefs {
   static const _enableLoggerKey = BoolKey('AppSettingPrefs_enableLogger');
   static const _showDebugErrorMsgKey = BoolKey('AppSettingPrefs_showDebugErrorMsg');
   static const _useNativeShareSheetKey = BoolKey('AppSettingPrefs_useNativeShareSheet');
+  static const _apiBaseUrlKey = StringKey('AppSettingPrefs_apiBaseUrl');
 
   static List<TypedKey> get otherSettingKeys => [
         _timeoutBehaviorKey,
@@ -229,6 +234,7 @@ class AppSettingPrefs {
         _enableLoggerKey,
         _showDebugErrorMsgKey,
         _useNativeShareSheetKey,
+        _apiBaseUrlKey,
       ];
 
   static Future<OtherSetting> _loadOtherSetting() async {
@@ -241,6 +247,7 @@ class AppSettingPrefs {
       enableLogger: prefs.safeGet<bool>(_enableLoggerKey) ?? def.enableLogger,
       showDebugErrorMsg: prefs.safeGet<bool>(_showDebugErrorMsgKey) ?? def.showDebugErrorMsg,
       useNativeShareSheet: prefs.safeGet<bool>(_useNativeShareSheetKey) ?? def.useNativeShareSheet,
+      apiBaseUrl: prefs.safeGet<String>(_apiBaseUrlKey) ?? def.apiBaseUrl,
     );
   }
 
@@ -253,6 +260,7 @@ class AppSettingPrefs {
     await prefs.safeSet<bool>(_enableLoggerKey, setting.enableLogger);
     await prefs.safeSet<bool>(_showDebugErrorMsgKey, setting.showDebugErrorMsg);
     await prefs.safeSet<bool>(_useNativeShareSheetKey, setting.useNativeShareSheet);
+    await prefs.safeSet<String>(_apiBaseUrlKey, setting.apiBaseUrl);
   }
 
   // ===

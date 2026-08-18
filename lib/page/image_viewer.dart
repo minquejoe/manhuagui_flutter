@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_ahlib/flutter_ahlib.dart';
-import 'package:flutter_cache_manager/flutter_cache_manager.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 import 'package:manhuagui_flutter/config.dart';
 import 'package:manhuagui_flutter/page/view/common_widgets.dart';
@@ -8,6 +7,7 @@ import 'package:manhuagui_flutter/page/view/image_load.dart';
 import 'package:manhuagui_flutter/service/native/android.dart';
 import 'package:manhuagui_flutter/service/native/system_ui.dart';
 import 'package:manhuagui_flutter/service/storage/download.dart';
+import 'package:manhuagui_flutter/service/storage/image_cache_manager.dart';
 import 'package:manhuagui_flutter/service/storage/storage.dart';
 import 'package:material_design_icons_flutter/material_design_icons_flutter.dart';
 import 'package:photo_view/photo_view.dart';
@@ -30,7 +30,7 @@ class ImageViewerPage extends StatefulWidget {
 
 class _ImageViewerPageState extends State<ImageViewerPage> {
   final _photoViewKey = GlobalKey<ReloadablePhotoViewState>();
-  final _cache = DefaultCacheManager();
+  final _cache = AppImageCacheManager();
 
   @override
   void initState() {

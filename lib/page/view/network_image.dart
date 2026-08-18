@@ -3,8 +3,10 @@ import 'dart:io' show File;
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_ahlib/flutter_ahlib.dart';
-import 'package:flutter_cache_manager/flutter_cache_manager.dart';
+import 'package:manhuagui_flutter/app_setting.dart';
 import 'package:manhuagui_flutter/config.dart';
+import 'package:manhuagui_flutter/service/image_url.dart';
+import 'package:manhuagui_flutter/service/storage/image_cache_manager.dart';
 
 class NetworkImageView extends StatelessWidget {
   const NetworkImageView({
@@ -77,6 +79,8 @@ class NetworkImageView extends StatelessWidget {
     if (url.startsWith('//')) {
       url = 'https:$url';
     }
+    // 封面等图片统一经自建后端代理加载（未配置自建服务器时原样返回）
+    url = proxyImageUrl(url, apiBase: AppSetting.instance.other.effectiveApiBaseUrl);
 
     return Container(
       decoration: border == null
@@ -101,7 +105,7 @@ class NetworkImageView extends StatelessWidget {
                   'User-Agent': USER_AGENT,
                   'Referer': REFERER,
                 },
-                cacheManager: DefaultCacheManager(),
+                cacheManager: AppImageCacheManager(),
                 fadeOutDuration: Duration(milliseconds: 1000),
                 fadeOutCurve: Curves.easeOut,
                 fadeInDuration: Duration(milliseconds: 500),

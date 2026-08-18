@@ -36,9 +36,11 @@ import 'package:manhuagui_flutter/service/dio/wrap_error.dart';
 import 'package:manhuagui_flutter/service/evb/auth_manager.dart';
 import 'package:manhuagui_flutter/service/evb/evb_manager.dart';
 import 'package:manhuagui_flutter/service/evb/events.dart';
+import 'package:manhuagui_flutter/service/image_url.dart';
 import 'package:manhuagui_flutter/service/native/android.dart';
 import 'package:manhuagui_flutter/service/native/browser.dart';
 import 'package:manhuagui_flutter/service/native/system_ui.dart';
+import 'package:manhuagui_flutter/service/storage/chapter_preloader.dart';
 import 'package:manhuagui_flutter/service/storage/download.dart';
 import 'package:material_design_icons_flutter/material_design_icons_flutter.dart';
 import 'package:wakelock/wakelock.dart';
@@ -140,9 +142,10 @@ const _kViewportPageSpace = 25.0; // 页面间隔
 const _kAnimationDuration = Duration(milliseconds: 150); // 动画时长
 const _kOverlayAnimationDuration = Duration(milliseconds: 100); // SystemUI 动画时长
 
-class _MangaViewerPageState extends State<MangaViewerPage> with AutomaticKeepAliveClientMixin {
+class _MangaViewerPageState extends State<MangaViewerPage> with AutomaticKeepAliveClientMixin, WidgetsBindingObserver {
   final _mangaGalleryViewKey = GlobalKey<MangaGalleryViewState>();
   final _cancelHandlers = <VoidCallback>[];
+  final _preloader = ChapterImagePreloader(); // 整章预加载
 
   ViewSetting get _setting => AppSetting.instance.view;
 
@@ -158,8 +161,24 @@ class _MangaViewerPageState extends State<MangaViewerPage> with AutomaticKeepAli
   var _batteryInfo = '0%';
 
   @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    switch (state) {
+      case AppLifecycleState.resumed:
+        _preloader.resume(); // 回到前台继续整章预加载
+        break;
+      case AppLifecycleState.inactive:
+      case AppLifecycleState.paused:
+        _preloader.pause(); // 锁屏 / 退后台时暂停，避免占用网络
+        break;
+      case AppLifecycleState.detached:
+        break;
+    }
+  }
+
+  @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance?.addObserver(this);
 
     // data related
     WidgetsBinding.instance?.addPostFrameCallback((_) => _loadData());
@@ -224,8 +243,10 @@ class _MangaViewerPageState extends State<MangaViewerPage> with AutomaticKeepAli
 
   @override
   void dispose() {
+    WidgetsBinding.instance?.removeObserver(this);
     _cancelHandlers.forEach((c) => c.call());
     _timer?.cancel();
+    _preloader.stop();
     super.dispose();
   }
 
@@ -271,7 +292,7 @@ class _MangaViewerPageState extends State<MangaViewerPage> with AutomaticKeepAli
       return;
     }
 
-    final client = RestClient(DioManager.instance.dio);
+    final client = createRestClient(DioManager.instance.dio);
     if (AuthManager.instance.logined) {
       // 3. 异步更新章节阅读记录
       Future.microtask(() async {
@@ -345,6 +366,7 @@ class _MangaViewerPageState extends State<MangaViewerPage> with AutomaticKeepAli
           metadataUpdatedAt: null /* never used when online */,
         );
         _preparePageValues(); // 初始化页码和页面列表
+        _preloadWholeChapter(); // 整章预加载（仅在线模式）
         await _updateDatabaseAndMetadataAfterGot(); // 更新数据库和下载文件的各种信息 (仅在线模式)
       } else {
         // => (II) 离线模式，使用已下载的漫画章节数据 (异步获取漫画数据)
@@ -425,7 +447,7 @@ class _MangaViewerPageState extends State<MangaViewerPage> with AutomaticKeepAli
         !isValidPageUrlForMetadata(_data!.pages[idx]) // 离线模式下页面链接可能无效，只出现在 metadata 丢失的情况下
             ? null // 如果 metadata 内不包含有效链接 (仅针对漫画下载和离线模式) 则显示提示信息【该页尚未下载，且未获取到该页的链接】
             : _data!.pages[idx].let(
-                (url) => url.startsWith('//') ? 'https:$url' : url,
+                (url) => proxyImageUrl(url.startsWith('//') ? 'https:$url' : url, apiBase: AppSetting.instance.other.effectiveApiBaseUrl),
               ),
     ];
     _urlFutures = _pageUrls!.map((url) => Future.value(url)).toList();
@@ -442,6 +464,27 @@ class _MangaViewerPageState extends State<MangaViewerPage> with AutomaticKeepAli
                 url: _data!.pages[idx], // url is only used to get extension (webp) and construct file path
               ),
     ];
+  }
+
+  /// 整章预加载：进入章节后，后台把整章图片预取到磁盘缓存
+  /// （从当前页往后优先，再补前面的页），有网络时为无网络 / 弱网场景准备余量。
+  void _preloadWholeChapter() {
+    if (!widget.onlineMode || !AppSetting.instance.view.preloadWholeChapter) {
+      return;
+    }
+    var urls = _pageUrls?.whereType<String>().toList();
+    if (urls == null || urls.isEmpty) {
+      return;
+    }
+    // 优先预取当前页之后的页面（顺着阅读方向），前面的页面最后补
+    if (urls.length > 1) {
+      var start = (_initialPage ?? 1) - 1;
+      if (start < 0 || start >= urls.length) {
+        start = 0;
+      }
+      urls = [...urls.sublist(start), ...urls.sublist(0, start)];
+    }
+    _preloader.enqueue(urls, headers: {'User-Agent': USER_AGENT, 'Referer': REFERER});
   }
 
   Future<void> _updateDatabaseAndMetadataAfterGot() async {

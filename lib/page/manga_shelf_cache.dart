@@ -49,7 +49,7 @@ class MangaShelfCachePage extends StatefulWidget {
             () async {
               // !!!
               try {
-                final client = RestClient(DioManager.instance.dio);
+                final client = createRestClient(DioManager.instance.dio);
                 while (!canceled) {
                   var result = await client.getShelfMangas(token: AuthManager.instance.token, page: currPage);
                   for (var item in result.data.data) {

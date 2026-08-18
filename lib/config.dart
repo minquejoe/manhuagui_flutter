@@ -26,8 +26,21 @@ const CONNECT_TIMEOUT = 8000; // 8.0s (local -> my server)
 const SEND_TIMEOUT = 8000; // 8.0s (local -> my server)
 const RECEIVE_TIMEOUT = 10000; // 10.0s (my server -> manhuagui server -> my server -> local)
 const DOWNLOAD_HEAD_TIMEOUT = 5000; // 5.0s (local -> manhuagui server -> local)
-const DOWNLOAD_IMAGE_TIMEOUT = 12000; // 12.0s (local -> manhuagui server -> local)
+const DOWNLOAD_IMAGE_TIMEOUT = 25000; // 25.0s (download goes through the backend image proxy, one extra hop)
 const GALLERY_IMAGE_TIMEOUT = 15000; // 15.0s (local -> manhuagui server -> local)
+const IMAGE_PROXY_PATH = 'v1/image/proxy'; // 自建后端图片代理端点
+// => image download (flutter_cache_manager / HardenedHttpFileService)
+const IMAGE_DOWNLOAD_IDLE_TIMEOUT = Duration(seconds: 60); // keep-alive, so connections survive pauses between page turns
+const IMAGE_DOWNLOAD_CONNECT_TIMEOUT = Duration(seconds: 8); // TCP connect + TLS handshake deadline (tarpit protection)
+const IMAGE_DOWNLOAD_REQUEST_TIMEOUT = Duration(seconds: 10); // per-attempt deadline (connect + TLS + response headers), aborts the request
+const IMAGE_DOWNLOAD_BODY_TIMEOUT = Duration(seconds: 20); // body read deadline, releases the download queue slot on stall
+const IMAGE_DOWNLOAD_MAX_CONNECTIONS_PER_HOST = 8;
+// High enough that the gallery's own requests never queue behind the
+// whole-chapter preloader (preload 2 + gallery <= 4 + 1 < 10); CDN burst
+// protection comes from keep-alive connection reuse, not from this number.
+const IMAGE_DOWNLOAD_CONCURRENT_FETCHES = 10;
+const IMAGE_DOWNLOAD_MAX_RETRIES = 2;
+const IMAGE_DOWNLOAD_RETRY_INTERVAL_MS = 500;
 // => LTIMEOUT
 final CONNECT_LTIMEOUT = (CONNECT_TIMEOUT * 1.5).toInt();
 final SEND_LTIMEOUT = (SEND_TIMEOUT * 1.5).toInt();

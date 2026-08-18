@@ -87,7 +87,7 @@ class AuthManager {
 
       // check stored token
       _loading = true;
-      final client = RestClient(DioManager.instance.dio);
+      final client = createRestClient(DioManager.instance.dio);
       try {
         var r = await client.checkUserLogin(token: token);
         AuthManager.instance.record(username: r.data.username, token: token);

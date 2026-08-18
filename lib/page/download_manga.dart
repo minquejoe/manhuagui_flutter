@@ -169,7 +169,7 @@ class _DownloadMangaPageState extends State<DownloadMangaPage> with SingleTicker
       return;
     }
 
-    final client = RestClient(DioManager.instance.dio);
+    final client = createRestClient(DioManager.instance.dio);
     try {
       var result = await client.getManga(mid: widget.mangaId);
       if (result.data.title != '' /* 确保获取的漫画数据没有问题 */) {

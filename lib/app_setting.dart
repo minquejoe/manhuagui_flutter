@@ -82,6 +82,7 @@ class ViewSetting {
     required this.keepScreenOn,
     required this.fullscreen,
     required this.preloadCount,
+    required this.preloadWholeChapter,
     required this.hideAppBarWhenEnter,
     required this.keepAppBarWhenReplace,
   });
@@ -95,6 +96,7 @@ class ViewSetting {
   final bool keepScreenOn; // 屏幕常亮
   final bool fullscreen; // 全屏阅读
   final int preloadCount; // 预加载页数
+  final bool preloadWholeChapter; // 整章预加载（后台预取整章图片到缓存）
   final PageNoPosition pageNoPosition; // 每页显示额外页码
   final bool hideAppBarWhenEnter; // 进入时隐藏标题栏
   final bool keepAppBarWhenReplace; // 切换章节时保持标题栏
@@ -109,6 +111,7 @@ class ViewSetting {
     keepScreenOn: true,
     fullscreen: false,
     preloadCount: 3,
+    preloadWholeChapter: true,
     pageNoPosition: PageNoPosition.hide,
     hideAppBarWhenEnter: true,
     keepAppBarWhenReplace: true,
@@ -124,6 +127,7 @@ class ViewSetting {
     bool? keepScreenOn,
     bool? fullscreen,
     int? preloadCount,
+    bool? preloadWholeChapter,
     PageNoPosition? pageNoPosition,
     bool? hideAppBarWhenEnter,
     bool? keepAppBarWhenReplace,
@@ -138,6 +142,7 @@ class ViewSetting {
       keepScreenOn: keepScreenOn ?? this.keepScreenOn,
       fullscreen: fullscreen ?? this.fullscreen,
       preloadCount: preloadCount ?? this.preloadCount,
+      preloadWholeChapter: preloadWholeChapter ?? this.preloadWholeChapter,
       pageNoPosition: pageNoPosition ?? this.pageNoPosition,
       hideAppBarWhenEnter: hideAppBarWhenEnter ?? this.hideAppBarWhenEnter,
       keepAppBarWhenReplace: keepAppBarWhenReplace ?? this.keepAppBarWhenReplace,
@@ -529,6 +534,7 @@ class OtherSetting {
     required this.enableLogger,
     required this.showDebugErrorMsg,
     required this.useNativeShareSheet,
+    required this.apiBaseUrl,
   });
 
   final TimeoutBehavior timeoutBehavior; // 网络请求超时时间
@@ -537,6 +543,7 @@ class OtherSetting {
   final bool enableLogger; // 记录调试日志
   final bool showDebugErrorMsg; // 使用更详细的错误信息
   final bool useNativeShareSheet; // 使用原生的分享菜单
+  final String apiBaseUrl; // 自定义 API 服务器地址，为空表示使用默认的开发者服务器
 
   static const defaultSetting = OtherSetting(
     timeoutBehavior: TimeoutBehavior.normal,
@@ -545,7 +552,27 @@ class OtherSetting {
     enableLogger: false,
     showDebugErrorMsg: false,
     useNativeShareSheet: true,
+    apiBaseUrl: '',
   );
+
+  /// The effective API base URL: the user-configured one if set, otherwise the
+  /// default developer proxy ([BASE_API_URL]). Always ends with '/'.
+  String get effectiveApiBaseUrl {
+    var url = apiBaseUrl.trim();
+    if (url.isEmpty) {
+      return BASE_API_URL;
+    }
+    var path = Uri.tryParse(url)?.path ?? '';
+    var noTrailingSlash = path.endsWith('/') ? path.substring(0, path.length - 1) : path;
+    if (!noTrailingSlash.toLowerCase().endsWith('/v1')) {
+      // The API routes are mounted under /v1 (same layout as the official
+      // backend), so append it when the user only gave the server root.
+      url = '${url.endsWith('/') ? url.substring(0, url.length - 1) : url}/v1/';
+    } else if (!url.endsWith('/')) {
+      url = '$url/';
+    }
+    return url;
+  }
 
   OtherSetting copyWith({
     TimeoutBehavior? timeoutBehavior,
@@ -554,6 +581,7 @@ class OtherSetting {
     bool? enableLogger,
     bool? showDebugErrorMsg,
     bool? useNativeShareSheet,
+    String? apiBaseUrl,
     bool? reverseDialogActions,
   }) {
     return OtherSetting(
@@ -563,6 +591,7 @@ class OtherSetting {
       enableLogger: enableLogger ?? this.enableLogger,
       showDebugErrorMsg: showDebugErrorMsg ?? this.showDebugErrorMsg,
       useNativeShareSheet: useNativeShareSheet ?? this.useNativeShareSheet,
+      apiBaseUrl: apiBaseUrl ?? this.apiBaseUrl,
     );
   }
 }

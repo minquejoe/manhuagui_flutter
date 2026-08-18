@@ -45,6 +45,7 @@ class _ViewSettingSubPageState extends State<ViewSettingSubPage> {
   late var _keepScreenOn = widget.setting.keepScreenOn;
   late var _fullscreen = widget.setting.fullscreen;
   late var _preloadCount = widget.setting.preloadCount;
+  late var _preloadWholeChapter = widget.setting.preloadWholeChapter;
   late var _pageNoPosition = widget.setting.pageNoPosition;
   late var _hideAppBarWhenEnter = widget.setting.hideAppBarWhenEnter;
   late var _keepAppBarWhenReplace = widget.setting.keepAppBarWhenReplace;
@@ -59,6 +60,7 @@ class _ViewSettingSubPageState extends State<ViewSettingSubPage> {
         keepScreenOn: _keepScreenOn,
         fullscreen: _fullscreen,
         preloadCount: _preloadCount,
+        preloadWholeChapter: _preloadWholeChapter,
         pageNoPosition: _pageNoPosition,
         hideAppBarWhenEnter: _hideAppBarWhenEnter,
         keepAppBarWhenReplace: _keepAppBarWhenReplace,
@@ -75,6 +77,7 @@ class _ViewSettingSubPageState extends State<ViewSettingSubPage> {
     _keepScreenOn = setting.keepScreenOn;
     _fullscreen = setting.fullscreen;
     _preloadCount = setting.preloadCount;
+    _preloadWholeChapter = setting.preloadWholeChapter;
     _pageNoPosition = setting.pageNoPosition;
     _hideAppBarWhenEnter = setting.hideAppBarWhenEnter;
     _keepAppBarWhenReplace = setting.keepAppBarWhenReplace;
@@ -170,6 +173,16 @@ class _ViewSettingSubPageState extends State<ViewSettingSubPage> {
           textBuilder: (s) => s == 0 ? '禁用预加载' : '前后$s页',
           onChanged: (c) {
             _preloadCount = c.clamp(0, 6);
+            widget.onSettingChanged.call(_newestSetting);
+            if (mounted) setState(() {});
+          },
+        ),
+        SettingSwitcherView(
+          title: '整章预加载',
+          hint: '进入章节后，后台将整章图片预取到本地缓存（从当前页往后优先），有网络时为无网络 / 弱网场景准备余量。会消耗较多流量，且与上方预加载页数互不影响。',
+          value: _preloadWholeChapter,
+          onChanged: (b) {
+            _preloadWholeChapter = b;
             widget.onSettingChanged.call(_newestSetting);
             if (mounted) setState(() {});
           },

@@ -44,7 +44,7 @@ class _CommentsPageState extends State<CommentsPage> {
   var _total = 0;
 
   Future<PagedList<Comment>> _getData({required int page}) async {
-    final client = RestClient(DioManager.instance.dio);
+    final client = createRestClient(DioManager.instance.dio);
     var result = await client.getMangaComments(mid: widget.mangaId, page: page).onError((e, s) {
       return Future.error(wrapError(e, s).text);
     });

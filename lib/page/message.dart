@@ -37,7 +37,7 @@ class _MessagePageState extends State<MessagePage> {
   var _unreadCount = 0;
 
   Future<List<Message>> _getData() async {
-    final client = RestClient(DioManager.instance.dio);
+    final client = createRestClient(DioManager.instance.dio);
     var result = await client.getMessages().onError((e, s) {
       return Future.error(wrapError(e, s).text);
     });

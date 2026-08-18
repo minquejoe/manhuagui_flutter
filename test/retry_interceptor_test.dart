@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 import 'dart:typed_data';
 
@@ -107,5 +108,20 @@ void main() {
 
     await expectLater(dio.get<String>('https://example.com/v1/manga'), throwsA(isA<DioError>()));
     expect(adapter.calls, 1);
+  });
+
+  test('isConnectionError classifies transient connection errors', () {
+    expect(isConnectionError(const SocketException('Connection terminated during handshake')), isTrue);
+    expect(isConnectionError(const SocketException('Connection reset by peer')), isTrue);
+    expect(isConnectionError(const SocketException('Connection refused')), isTrue);
+    expect(isConnectionError(const SocketException('Software caused connection abort')), isTrue);
+    expect(isConnectionError(const SocketException('Write failed (OS Error: Broken pipe)')), isTrue);
+    expect(isConnectionError(const HandshakeException('Connection terminated during handshake')), isTrue);
+    expect(isConnectionError(const HttpException('Connection closed before full header was received')), isTrue);
+    expect(isConnectionError(const HttpException('Connection closed while received data')), isTrue);
+    expect(isConnectionError(TimeoutException('after 10s')), isFalse);
+    expect(isConnectionError(FormatException('bad json')), isFalse);
+    expect(isConnectionError('Connection terminated during handshake'), isTrue); // wrapped text
+    expect(isConnectionError('Normal string'), isFalse);
   });
 }

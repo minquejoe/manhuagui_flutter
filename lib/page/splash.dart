@@ -85,7 +85,7 @@ class SplashPage extends StatefulWidget {
 
   static Future<void> _checkLatestMessage(BuildContext context) async {
     var readMessages = await ReadMessagePrefs.getReadMessages();
-    final client = RestClient(DioManager.instance.dio);
+    final client = createRestClient(DioManager.instance.dio);
     var m = (await client.getLatestMessage()).data;
 
     if (m.mustUpgradeNewVersion != null && isVersionNewer(m.mustUpgradeNewVersion!.newVersion!.version, APP_VERSION) == true) {

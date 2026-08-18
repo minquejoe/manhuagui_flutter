@@ -108,7 +108,7 @@ class _ShelfSubPageState extends State<ShelfSubPage> with AutomaticKeepAliveClie
       // refresh
       _isUpdated = false;
     }
-    final client = RestClient(DioManager.instance.dio);
+    final client = createRestClient(DioManager.instance.dio);
     var result = await client.getShelfMangas(token: AuthManager.instance.token, page: page).onError((e, s) {
       return Future.error(wrapError(e, s).text);
     });

@@ -3,6 +3,26 @@ import 'dart:math' as math;
 
 import 'package:dio/dio.dart';
 
+/// Returns true if [e] is a transient connection-level failure (TLS handshake
+/// terminated, connection reset/refused/aborted, broken pipe, ...) that is
+/// safe to retry. Used both by [RetryInterceptor] (Dio/API path) and by
+/// [HardenedHttpFileService] (image download path).
+bool isConnectionError(dynamic e) {
+  if (e is SocketException || e is TlsException /* includes HandshakeException */ || e is HttpException) {
+    return true;
+  }
+  if (e.runtimeType.toString() == 'ClientException' || e.runtimeType.toString() == '_ClientSocketException') {
+    return true;
+  }
+  var msg = e.toString().toLowerCase();
+  return msg.contains('connection terminated') ||
+      msg.contains('connection reset') ||
+      msg.contains('connection refused') ||
+      msg.contains('connection abort') ||
+      msg.contains('connection failed') ||
+      msg.contains('connection closed');
+}
+
 /// Automatically retries requests that failed due to transient connection
 /// errors (e.g. `HandshakeException: Connection terminated during handshake`,
 /// connection reset/refused), which occur sporadically on unstable networks.
@@ -77,27 +97,12 @@ class RetryInterceptor extends Interceptor {
       return false; // never retry non-idempotent requests
     }
     if (err.type == DioErrorType.connectTimeout) {
-      return true;
+      return true; // connect timeouts are fast-fail and usually transient
     }
     if (err.type != DioErrorType.other) {
-      return false;
+      return false; // receive/send timeouts are NOT retried: a slow server
+      // would just time out repeatedly, tripling the wait before the error
     }
-    return _isConnectionError(err.error);
-  }
-
-  bool _isConnectionError(dynamic e) {
-    if (e is SocketException || e is TlsException /* includes HandshakeException */ || e is HttpException) {
-      return true;
-    }
-    if (e.runtimeType.toString() == 'ClientException' || e.runtimeType.toString() == '_ClientSocketException') {
-      return true;
-    }
-    var msg = e.toString().toLowerCase();
-    return msg.contains('connection terminated') ||
-        msg.contains('connection reset') ||
-        msg.contains('connection refused') ||
-        msg.contains('connection abort') ||
-        msg.contains('connection failed') ||
-        msg.contains('connection closed');
+    return isConnectionError(err.error);
   }
 }

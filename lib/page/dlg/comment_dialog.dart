@@ -62,7 +62,7 @@ void showCommentPopupMenuForListAndPage({
           text: Text('点赞评论'),
           onPressed: () async {
             Navigator.of(c).pop();
-            final client = RestClient(DioManager.instance.dio);
+            final client = createRestClient(DioManager.instance.dio);
             try {
               await client.likeComment(cid: comment.cid);
               Fluttertoast.showToast(msg: '点赞成功，点赞结果需要等待几分钟才会显示');
@@ -227,7 +227,7 @@ Future<AddedComment?> _showCommentDialog({
     ),
   );
 
-  final client = RestClient(DioManager.instance.dio);
+  final client = createRestClient(DioManager.instance.dio);
   try {
     var r = commentId == 0 //
         ? await client.addComment(token: AuthManager.instance.token, mid: mangaId, text: content)

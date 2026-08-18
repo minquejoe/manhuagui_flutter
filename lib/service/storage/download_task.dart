@@ -227,7 +227,7 @@ class DownloadMangaQueueTask extends QueueTask<void> {
   }
 
   Future<bool> _coreDoTask() async {
-    final client = RestClient(DioManager.instance.dio);
+    final client = createRestClient(DioManager.instance.dio);
 
     // 1. 创建必要文件，并判断是否真正需要下载漫画
     try {
